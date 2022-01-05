@@ -972,9 +972,9 @@ class FB8Distribution(object):
         gradval = self._grad_log_pdf(xs)
         return [sum(_, len(np.shape(_)) - 1) for _ in gradval]
 
-    def _rvs_helper(self):
+    def _rvs_helper(self,random_state=None):
         num_samples = 10000
-        xs = gauss(0, 1).rvs((num_samples, 3))
+        xs = gauss(0, 1).rvs((num_samples, 3),random_state=random_state)
         xs = np.divide(xs, np.reshape(norm(xs, 1), (num_samples, 1)))
         lpvalues = self.log_pdf(xs, normalize=False)
         lfmax = self.log_pdf_max(normalize=False)
@@ -983,9 +983,9 @@ class FB8Distribution(object):
         # assert lfmax > lpvalues.max()
         ## END
         shifted = lpvalues - lfmax
-        return xs[uniform(0, 1).rvs(num_samples) < np.exp(shifted)]
+        return xs[uniform(0, 1).rvs(num_samples,random_state=random_state) < np.exp(shifted)]
 
-    def rvs(self, n_samples=None):
+    def rvs(self, n_samples=None, random_state=None):
         """
         Returns random samples from the FB8 distribution by rejection sampling.
         May become inefficient for large kappas.
@@ -993,11 +993,14 @@ class FB8Distribution(object):
         The returned random samples are 3D unit vectors.
         If n_samples == None then a single sample x is returned with shape (3,)
         If n_samples is an integer value N then N samples are returned in an array with shape (N, 3)
+        
+        random_state : {None, int, `numpy.random.Generator`,
+                        `numpy.random.RandomState`}, optional
         """
         num_samples = 1 if n_samples == None else n_samples
         rvs = self._cached_rvs
         while len(rvs) < num_samples:
-            new_rvs = self._rvs_helper()
+            new_rvs = self._rvs_helper(random_state=random_state)
             rvs = np.concatenate([rvs, new_rvs])
         if n_samples == None:
             self._cached_rvs = rvs[1:]
